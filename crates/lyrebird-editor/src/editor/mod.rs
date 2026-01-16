@@ -1,4 +1,5 @@
-use lyrebird_renderer::prelude::*;
+
+use lyrebird_renderer::prelude::{winit::keyboard::KeyCode, *};
 
 pub struct Editor {
 
@@ -10,14 +11,46 @@ impl AppBehaviour for Editor {
 
         }
     }
-
-    fn init(&mut self, ctx: std::sync::Arc<lyrebird_renderer::GraphicsContext>) {
-        ctx.window.set_title("lyrebird editor");
+    
+    fn init(&mut self, ctx: Context) {
+        ctx.graphics.window.set_title("lyrebird editor");
     }
-
-    fn update(&mut self, _ctx: std::sync::Arc<lyrebird_renderer::GraphicsContext>, _dt: f64) {
+    
+    fn update(&mut self, ctx: Context, _dt: f64) {
+        if ctx.input.is_key_down(KeyCode::Escape) {
+            ctx.event_loop.exit();
+        }
     }
+    
+    fn render(&mut self, ctx: Context, view: &wgpu::TextureView) {
+        let mut encoder = ctx.graphics.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("Render Encoder"),
+        });
 
-    fn render(&mut self, _ctx: std::sync::Arc<lyrebird_renderer::GraphicsContext>, _view: &wgpu::TextureView) {
+        {
+            let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("Render Pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: 0.1,
+                            g: 0.2,
+                            b: 0.3,
+                            a: 1.0,
+                        }),
+                        store: wgpu::StoreOp::Store,
+                    },
+                    depth_slice: None,
+                })],
+                depth_stencil_attachment: None,
+                occlusion_query_set: None,
+                timestamp_writes: None,
+                multiview_mask: None,
+            });
+        }
+
+        ctx.graphics.queue.submit(std::iter::once(encoder.finish()));
     }
 }

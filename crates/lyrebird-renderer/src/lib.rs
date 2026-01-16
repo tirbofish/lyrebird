@@ -1,18 +1,22 @@
 use std::{sync::Arc, time::{Duration, Instant}};
 
-use winit::{application::ApplicationHandler, event::{KeyEvent, WindowEvent}, event_loop::{ActiveEventLoop, EventLoop}, keyboard::{KeyCode, PhysicalKey}, window::Window};
+use winit::{application::ApplicationHandler, event::{WindowEvent}, event_loop::{ActiveEventLoop, EventLoop}, window::Window};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::wasm_bindgen;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::UnwrapThrowExt;
 
-use crate::scene::AppBehaviour;
+use crate::{input::InputManager, scene::{AppBehaviour, Context}};
 
 mod scene;
+mod input;
 
 pub mod prelude {
     pub use super::scene::*;
+    pub use super::input::*;
+
     pub use wgpu;
+    pub use winit;
 }
 
 /// A version of [State] that can be passed around thread-safe.  
@@ -27,6 +31,7 @@ pub struct State {
     ctx: Arc<GraphicsContext>,
     config: wgpu::SurfaceConfiguration,
     is_surface_configured: bool,
+    input_manager: InputManager,
 }
 
 impl State {
@@ -93,6 +98,7 @@ impl State {
             ctx,
             config,
             is_surface_configured: false,
+            input_manager: InputManager::default(),
         })
     }
 
@@ -167,8 +173,14 @@ where
 
         #[cfg(not(target_arch = "wasm32"))]
         {
+            use crate::scene::Context;
+
             let state = pollster::block_on(State::new(window)).unwrap();
-            self.instance.init(state.ctx.clone());
+            self.instance.init(Context {
+                graphics: state.ctx.clone(),
+                input: state.input_manager.clone(),
+                event_loop,
+            });
             self.state = Some(state);
         }
 
@@ -189,14 +201,20 @@ where
     }
 
     #[allow(unused_mut)]
-    fn user_event(&mut self, _event_loop: &ActiveEventLoop, mut event: State) {
+    fn user_event(&mut self, event_loop: &ActiveEventLoop, mut event: State) {
         #[cfg(target_arch = "wasm32")]
         {
             event.ctx.window.request_redraw();
             let size = event.ctx.window.inner_size();
             event.resize(size.width, size.height);
         }
-        self.instance.init(event.ctx.clone());
+        self.instance.init(
+            Context {
+                graphics: event.ctx.clone(),
+                input: event.input_manager.clone(),
+                event_loop,
+            }
+        );
         self.state = Some(event);
     }
 
@@ -211,12 +229,23 @@ where
             None => return,
         };
 
+        if InputManager::is_input_event(&event) {
+            state.input_manager.poll(event.clone());
+        }
+
         match event {
             WindowEvent::CloseRequested => event_loop.exit(),
             WindowEvent::Resized(size) => state.resize(size.width, size.height),
             WindowEvent::RedrawRequested => {
                 let now = Instant::now();
-                self.instance.update(state.ctx.clone(), self.elapsed.as_secs_f64());
+                self.instance.update(
+                    Context {
+                        graphics: state.ctx.clone(),
+                        input: state.input_manager.clone(),
+                        event_loop,
+                    }, 
+                    self.elapsed.as_secs_f64()
+                );
 
                 let mut render = || -> Result<(), wgpu::SurfaceError> {
                     state.ctx.window.request_redraw();
@@ -228,7 +257,14 @@ where
                     let output = state.surface.get_current_texture()?;
                     let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-                    self.instance.render(state.ctx.clone(), &view);
+                    self.instance.render(
+                        Context {
+                            graphics: state.ctx.clone(),
+                            input: state.input_manager.clone(),
+                            event_loop,
+                        }, 
+                        &view
+                    );
 
                     output.present();
 
@@ -247,20 +283,13 @@ where
                 }
                 self.elapsed = now.elapsed();
             }
-            WindowEvent::KeyboardInput {
-                event:
-                    KeyEvent {
-                        physical_key: PhysicalKey::Code(code),
-                        state: key_state,
-                        ..
-                    },
-                ..
-            } => match (code, key_state.is_pressed()) {
-                (KeyCode::Escape, true) => event_loop.exit(),
-                _ => {}
-            },
             _ => {}
         }
+    }
+
+    fn exiting(&mut self, event_loop: &ActiveEventLoop) {
+        self.instance.exiting(event_loop);
+        log::info!("Exiting");
     }
 }
 

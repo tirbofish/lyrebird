@@ -31,3 +31,4 @@ web-sys = { version = "0.3", features = [
 ]}
 parking-lot = "0.12"
 pollster = "0.3"
+stick = "0.13"

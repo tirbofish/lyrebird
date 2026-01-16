@@ -11,16 +11,16 @@ impl AppBehaviour for Runtime {
         }
     }
 
-    fn init(&mut self, ctx: std::sync::Arc<lyrebird_renderer::GraphicsContext>) {
-        ctx.window.set_title("lyrebird runtime");
+    fn init(&mut self, ctx: Context) {
+        ctx.graphics.window.set_title("lyrebird runtime");
     }
 
-    fn update(&mut self, _ctx: std::sync::Arc<lyrebird_renderer::GraphicsContext>, _dt: f64) {
+    fn update(&mut self, _ctx: Context, _dt: f64) {
         
     }
 
-    fn render(&mut self, ctx: std::sync::Arc<lyrebird_renderer::GraphicsContext>, view: &wgpu::TextureView) {
-        let mut encoder = ctx.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+    fn render(&mut self, ctx: Context, view: &wgpu::TextureView) {
+        let mut encoder = ctx.graphics.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("Render Encoder"),
         });
 
@@ -48,6 +48,6 @@ impl AppBehaviour for Runtime {
             });
         }
 
-        ctx.queue.submit(std::iter::once(encoder.finish()));
+        ctx.graphics.queue.submit(std::iter::once(encoder.finish()));
     }
 }
