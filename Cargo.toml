@@ -1,0 +1,33 @@
+[workspace]
+package.version = "0.1.0"
+package.readme = "README.md"
+package.description = "yet another game engine"
+package.authors = ["Thribhu K (tirbofish) <4tkbytes@pm.me>"]
+package.edition = "2024"
+package.license = "MIT or Apache-2.0"
+package.repository = "https://github.com/tirbofish/lyrebird"
+
+resolver = "3"
+
+members = [
+    "crates/*"
+]
+
+[workspace.dependencies]
+anyhow = "1.0"
+winit = { version = "0.30", features = ["android-native-activity"] }
+env_logger = "0.11"
+log = "0.4"
+wgpu = "28.0"
+tokio = { version = "1", default-features = false, features = ["sync", "macros"] }
+console_error_panic_hook = "0.1.6"
+console_log = "1.0"
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4.30"
+web-sys = { version = "0.3", features = [
+    "Document",
+    "Window",
+    "Element",
+]}
+parking-lot = "0.12"
+pollster = "0.3"

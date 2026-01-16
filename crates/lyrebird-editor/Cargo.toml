@@ -1,0 +1,12 @@
+[package]
+name = "lyrebird-editor"
+version.workspace = true
+readme.workspace = true
+description.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+lyrebird-renderer = { path = "../lyrebird-renderer" }

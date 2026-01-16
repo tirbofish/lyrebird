@@ -1,0 +1,35 @@
+[package]
+name = "lyrebird-renderer"
+version.workspace = true
+readme.workspace = true
+description.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+anyhow.workspace = true
+winit.workspace = true
+env_logger.workspace = true
+log.workspace = true
+tokio.workspace = true
+pollster.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+console_error_panic_hook = "0.1.6"
+console_log = "1.0"
+wgpu = { workspace = true, features = ["webgl"]}
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4.30"
+web-sys = { version = "0.3", features = [
+    "Document",
+    "Window",
+    "Element",
+]}
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+wgpu.workspace = true
