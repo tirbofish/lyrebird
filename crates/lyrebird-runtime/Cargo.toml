@@ -1,5 +1,5 @@
 [package]
-name = "lyrebird-editor"
+name = "lyrebird-runtime"
 version.workspace = true
 readme.workspace = true
 description.workspace = true
@@ -10,4 +10,7 @@ repository.workspace = true
 
 [dependencies]
 lyrebird-renderer = { path = "../lyrebird-renderer" }
-lyrebird-runtime = { path = "../lyrebird-runtime" }
+
+[features]
+# only used for the editor, will make the binary bulkier. supposed to be used as a lib. 
+debug = []

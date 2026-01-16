@@ -889,6 +889,7 @@ name = "lyrebird-editor"
 version = "0.1.0"
 dependencies = [
  "lyrebird-renderer",
+ "lyrebird-runtime",
 ]
 
 [[package]]
@@ -907,6 +908,13 @@ dependencies = [
  "web-sys",
  "wgpu",
  "winit",
+]
+
+[[package]]
+name = "lyrebird-runtime"
+version = "0.1.0"
+dependencies = [
+ "lyrebird-renderer",
 ]
 
 [[package]]

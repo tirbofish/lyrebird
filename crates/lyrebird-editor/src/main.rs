@@ -1,3 +1,5 @@
+mod editor;
+
 fn main() {
-    lyrebird_renderer::run().unwrap();
+    lyrebird_renderer::run::<editor::Editor>().unwrap();
 }

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::{Duration, Instant}};
 
 use winit::{application::ApplicationHandler, event::{KeyEvent, WindowEvent}, event_loop::{ActiveEventLoop, EventLoop}, keyboard::{KeyCode, PhysicalKey}, window::Window};
 #[cfg(target_arch = "wasm32")]
@@ -6,44 +6,145 @@ use wasm_bindgen::prelude::wasm_bindgen;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::UnwrapThrowExt;
 
+use crate::scene::AppBehaviour;
+
+mod scene;
+
+pub mod prelude {
+    pub use super::scene::*;
+    pub use wgpu;
+}
+
+/// A version of [State] that can be passed around thread-safe.  
+pub struct GraphicsContext {
+    pub window: Arc<Window>,
+    pub device: Arc<wgpu::Device>,
+    pub queue: Arc<wgpu::Queue>,
+}
+
 pub struct State {
-    window: Arc<Window>,
+    surface: wgpu::Surface<'static>,
+    ctx: Arc<GraphicsContext>,
+    config: wgpu::SurfaceConfiguration,
+    is_surface_configured: bool,
 }
 
 impl State {
     pub async fn new(window: Arc<Window>) -> anyhow::Result<Self> {
-        Ok(Self {
+        let size = window.inner_size();
+
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
+            #[cfg(not(target_arch = "wasm32"))]
+            backends: wgpu::Backends::PRIMARY,
+            #[cfg(target_arch = "wasm32")]
+            backends: wgpu::Backends::GL,
+            ..Default::default()
+        });
+
+        let surface = instance.create_surface(window.clone()).unwrap();
+
+        let adapter = instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::HighPerformance,
+                compatible_surface: Some(&surface),
+                force_fallback_adapter: false,
+            })
+            .await?;
+
+        let (device, queue) = adapter
+            .request_device(&wgpu::DeviceDescriptor {
+                label: None,
+                required_features: wgpu::Features::empty(),
+                experimental_features: wgpu::ExperimentalFeatures::disabled(),
+                required_limits: if cfg!(target_arch = "wasm32") {
+                    wgpu::Limits::downlevel_webgl2_defaults()
+                } else {
+                    wgpu::Limits::default()
+                },
+                memory_hints: Default::default(),
+                trace: wgpu::Trace::Off,
+            })
+            .await?;
+
+        let surface_caps = surface.get_capabilities(&adapter);
+        let surface_format = surface_caps.formats.iter()
+            .find(|f| f.is_srgb())
+            .copied()
+            .unwrap_or(surface_caps.formats[0]);
+        let config = wgpu::SurfaceConfiguration {
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            format: surface_format,
+            width: size.width,
+            height: size.height,
+            present_mode: surface_caps.present_modes[0],
+            alpha_mode: surface_caps.alpha_modes[0],
+            view_formats: vec![],
+            desired_maximum_frame_latency: 2,
+        };
+
+        let ctx = Arc::new(GraphicsContext {
             window,
+            device: Arc::new(device),
+            queue: Arc::new(queue),
+        });
+
+        Ok(Self {
+            surface,
+            ctx,
+            config,
+            is_surface_configured: false,
         })
     }
 
-    pub fn resize(&mut self, _width: u32, _height: u32) {
-    }
-    
-    pub fn render(&mut self) {
-        self.window.request_redraw();
+    pub fn resize(&mut self, width: u32, height: u32) {
+        if width > 0 && height > 0 {
+            self.config.width = width;
+            self.config.height = height;
+            self.surface.configure(&self.ctx.device, &self.config);
+            self.is_surface_configured = true;
+        }
     }
 }
 
-pub struct App {
+pub struct App<T> {
     #[cfg(target_arch = "wasm32")]
     proxy: Option<winit::event_loop::EventLoopProxy<State>>,
     state: Option<State>,
+    elapsed: Duration,
+
+    instance: T,
 }
 
-impl App {
-    pub fn new(#[cfg(target_arch = "wasm32")] event_loop: &EventLoop<State>) -> Self {
-        #[cfg(target_arch = "wasm32")]
+impl<T> App<T>
+where
+    T: AppBehaviour,
+{
+    #[cfg(target_arch = "wasm32")]
+    pub fn new(event_loop: &EventLoop<State>) -> Self {
         let proxy = Some(event_loop.create_proxy());
         Self {
             state: None,
             #[cfg(target_arch = "wasm32")]
             proxy,
+            elapsed: Default::default(),
+            instance: T::new(),
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn new() -> Self {
+        Self {
+            state: None,
+            elapsed: Default::default(),
+            instance: T::new(),
         }
     }
 }
 
-impl ApplicationHandler<State> for App {
+impl<T> ApplicationHandler<State> for App<T>
+where
+    T: AppBehaviour,
+{
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         #[allow(unused_mut)]
         let mut window_attributes = Window::default_attributes();
@@ -66,7 +167,9 @@ impl ApplicationHandler<State> for App {
 
         #[cfg(not(target_arch = "wasm32"))]
         {
-            self.state = Some(pollster::block_on(State::new(window)).unwrap());
+            let state = pollster::block_on(State::new(window)).unwrap();
+            self.instance.init(state.ctx.clone());
+            self.state = Some(state);
         }
 
         #[cfg(target_arch = "wasm32")]
@@ -89,12 +192,11 @@ impl ApplicationHandler<State> for App {
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, mut event: State) {
         #[cfg(target_arch = "wasm32")]
         {
-            event.window.request_redraw();
-            event.resize(
-                event.window.inner_size().width,
-                event.window.inner_size().height,
-            );
+            event.ctx.window.request_redraw();
+            let size = event.ctx.window.inner_size();
+            event.resize(size.width, size.height);
         }
+        self.instance.init(event.ctx.clone());
         self.state = Some(event);
     }
 
@@ -113,7 +215,37 @@ impl ApplicationHandler<State> for App {
             WindowEvent::CloseRequested => event_loop.exit(),
             WindowEvent::Resized(size) => state.resize(size.width, size.height),
             WindowEvent::RedrawRequested => {
-                state.render();
+                let now = Instant::now();
+                self.instance.update(state.ctx.clone(), self.elapsed.as_secs_f64());
+
+                let mut render = || -> Result<(), wgpu::SurfaceError> {
+                    state.ctx.window.request_redraw();
+
+                    if !state.is_surface_configured {
+                        return Ok(());
+                    }
+                    
+                    let output = state.surface.get_current_texture()?;
+                    let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+                    self.instance.render(state.ctx.clone(), &view);
+
+                    output.present();
+
+                    Ok(())
+                };
+
+                match render() {
+                    Ok(_) => {}
+                    Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
+                        let size = state.ctx.window.inner_size();
+                        state.resize(size.width, size.height);
+                    }
+                    Err(e) => {
+                        log::error!("Unable to render {}", e);
+                    }
+                }
+                self.elapsed = now.elapsed();
             }
             WindowEvent::KeyboardInput {
                 event:
@@ -132,7 +264,9 @@ impl ApplicationHandler<State> for App {
     }
 }
 
-pub fn run() -> anyhow::Result<()> {
+pub fn run<T>() -> anyhow::Result<()> 
+where T: AppBehaviour
+{
     #[cfg(not(target_arch = "wasm32"))]
     {
         env_logger::init();
@@ -148,29 +282,15 @@ pub fn run() -> anyhow::Result<()> {
     {
         use winit::platform::web::EventLoopExtWebSys;
 
-        let app = App::new(&event_loop);
+        let app = App::<T>::new(&event_loop);
         event_loop.spawn_app(app);
         Ok(())
     }
 
     #[cfg(not(target_arch = "wasm32"))]
     {
-        let mut app = App::new();
+        let mut app = App::<T>::new();
         event_loop.run_app(&mut app)?;
         Ok(())
     }
-}
-
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen(start)]
-pub fn run_web() -> Result<(), wasm_bindgen::JsValue> {
-    use wasm_bindgen::JsValue;
-
-    console_error_panic_hook::set_once();
-    if let Err(err) = run() {
-        log::error!("{err:?}");
-        return Err(JsValue::from_str(&format!("{err:?}")));
-    }
-
-    Ok(())
 }
