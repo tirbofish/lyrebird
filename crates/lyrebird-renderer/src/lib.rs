@@ -1,5 +1,6 @@
 use std::{sync::Arc, time::{Duration, Instant}};
 
+use slint::wgpu_27::{WGPUConfiguration, WGPUSettings};
 use winit::{application::ApplicationHandler, event::{WindowEvent}, event_loop::{ActiveEventLoop, EventLoop}, window::Window};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -37,6 +38,8 @@ pub struct State {
 }
 
 impl State {
+    pub const FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
+
     pub async fn new(window: Arc<Window>) -> anyhow::Result<Self> {
         let size = window.inner_size();
 
@@ -89,6 +92,14 @@ impl State {
             desired_maximum_frame_latency: 2,
         };
 
+        let settings = WGPUSettings::default();
+
+        slint::BackendSelector::new()
+            .require_wgpu_27(WGPUConfiguration::Automatic(settings))
+            .select()
+            .expect("Unable to create Slint backend with WGPU based renderer");
+
+        // make this last before returning
         let ctx = Arc::new(GraphicsContext {
             window,
             device: Arc::new(device),
@@ -287,6 +298,7 @@ where
                         log::error!("Unable to render {}", e);
                     }
                 }
+
                 self.elapsed = now.elapsed();
             }
             _ => {}
@@ -325,6 +337,7 @@ where T: AppBehaviour
     #[cfg(not(target_arch = "wasm32"))]
     {
         let mut app = App::<T>::new();
+
         event_loop.run_app(&mut app)?;
         Ok(())
     }

@@ -1,5 +1,5 @@
-
 use lyrebird_renderer::prelude::{winit::keyboard::KeyCode, *};
+use slint::ComponentHandle;
 
 pub struct Editor {
 
@@ -14,6 +14,14 @@ impl AppBehaviour for Editor {
     
     fn init(&mut self, ctx: Context) {
         ctx.graphics.window.set_title("lyrebird editor");
+
+        let app = crate::App::new().unwrap();
+        let app_weak = app.as_weak();
+        app.window()
+            .set_rendering_notifier(move |state, graphics_api| {
+
+            })
+            .expect("Unable to set rendering notifier");
     }
     
     fn update(&mut self, ctx: Context, _dt: f64) {
@@ -22,6 +30,7 @@ impl AppBehaviour for Editor {
         {
             ctx.event_loop.exit();
         }
+
     }
     
     fn render(&mut self, ctx: Context, view: &wgpu::TextureView) {
@@ -49,7 +58,6 @@ impl AppBehaviour for Editor {
                 depth_stencil_attachment: None,
                 occlusion_query_set: None,
                 timestamp_writes: None,
-                multiview_mask: None,
             });
         }
 

@@ -11,3 +11,8 @@ repository.workspace = true
 [dependencies]
 lyrebird-renderer = { path = "../lyrebird-renderer" }
 lyrebird-runtime = { path = "../lyrebird-runtime" }
+
+slint.workspace = true
+
+[build-dependencies]
+slint-build.workspace = true

@@ -18,7 +18,7 @@ anyhow = "1.0"
 winit = { version = "0.30", features = ["android-native-activity"] }
 env_logger = "0.11"
 log = "0.4"
-wgpu = "28.0"
+wgpu = "27.0"
 tokio = { version = "1", default-features = false, features = ["sync", "macros", "rt-multi-thread"] }
 console_error_panic_hook = "0.1.6"
 console_log = "1.0"
@@ -32,3 +32,5 @@ web-sys = { version = "0.3", features = [
 parking_lot = "0.12"
 pollster = "0.4"
 gilrs = "0.11"
+slint = {version = "1.14", features = ["unstable-wgpu-27", "backend-android-activity-06"]}
+slint-build = "1.14"
