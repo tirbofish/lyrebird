@@ -17,6 +17,8 @@ pub mod prelude {
 
     pub use wgpu;
     pub use winit;
+    #[cfg(not(target_arch = "wasm32"))]
+    pub use gilrs;
 }
 
 /// A version of [State] that can be passed around thread-safe.  
@@ -238,6 +240,10 @@ where
             WindowEvent::Resized(size) => state.resize(size.width, size.height),
             WindowEvent::RedrawRequested => {
                 let now = Instant::now();
+
+                // Gamepad input is not driven by winit WindowEvents, so we pump it once per frame.
+                state.input_manager.update_gamepads();
+
                 self.instance.update(
                     Context {
                         graphics: state.ctx.clone(),

@@ -1,7 +1,8 @@
-#[cfg(feature = "debug")]
-compile_error!("\n\nThis binary is compiled with the `debug` feature, which is not allowed to happen. \nlyrebird-runtime can only have this feature as a library target, not an executable.\n\n\n");
+//! The executable that runs the scene files. Connects directly to the [lyrebird-runtime] package, 
+//! and removes any debug code, making it fast for production. 
 
-fn main() {
+#[tokio::main]
+async fn main() {
     lyrebird_renderer::run::<lyrebird_runtime::scene::Runtime>().unwrap();
 }
 

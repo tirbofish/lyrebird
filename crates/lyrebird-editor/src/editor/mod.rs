@@ -17,7 +17,9 @@ impl AppBehaviour for Editor {
     }
     
     fn update(&mut self, ctx: Context, _dt: f64) {
-        if ctx.input.is_key_down(KeyCode::Escape) {
+        if ctx.input.is_key_down(KeyCode::Escape) 
+            || ctx.input.gamepads_snapshot().gamepads.iter().find(|(_, state)| state.buttons_down.contains(&gilrs::Button::Start)).is_some()
+        {
             ctx.event_loop.exit();
         }
     }
