@@ -11,6 +11,12 @@ repository.workspace = true
 [dependencies]
 lyrebird-renderer = { path = "../lyrebird-renderer" }
 
+slint.workspace = true
+
+[build-dependencies]
+slint-build.workspace = true
+walkdir.workspace = true
+
 [features]
 # only used for the editor, will make the binary bulkier. supposed to be used as a lib. 
 debug = []

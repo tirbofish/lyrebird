@@ -5,5 +5,5 @@ slint::include_modules!();
 mod editor;
 
 fn main() {
-    lyrebird_renderer::run::<editor::Editor>().unwrap();
+    lyrebird_renderer::run::<crate::LyrebirdEditor>().unwrap();
 }

@@ -16,3 +16,4 @@ slint.workspace = true
 
 [build-dependencies]
 slint-build.workspace = true
+walkdir.workspace = true

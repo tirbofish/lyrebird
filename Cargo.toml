@@ -34,3 +34,5 @@ pollster = "0.4"
 gilrs = "0.11"
 slint = {version = "1.14", features = ["unstable-wgpu-27", "backend-android-activity-06"]}
 slint-build = "1.14"
+walkdir = "2.5.0"
+i-slint-backend-winit = "1.14"

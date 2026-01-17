@@ -3045,6 +3045,7 @@ dependencies = [
  "lyrebird-runtime",
  "slint",
  "slint-build",
+ "walkdir",
 ]
 
 [[package]]
@@ -3056,11 +3057,11 @@ dependencies = [
  "console_log",
  "env_logger",
  "gilrs",
+ "i-slint-backend-winit",
  "log",
  "parking_lot",
  "pollster",
  "slint",
- "tokio",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -3082,6 +3083,9 @@ name = "lyrebird-runtime"
 version = "0.1.0"
 dependencies = [
  "lyrebird-renderer",
+ "slint",
+ "slint-build",
+ "walkdir",
 ]
 
 [[package]]

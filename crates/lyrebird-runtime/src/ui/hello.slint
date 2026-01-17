@@ -1,8 +1,6 @@
-import { AboutSlint, Button, VerticalBox } from "std-widgets.slint";
-export component LyrebirdEditor inherits Window {
+import { VerticalBox } from "std-widgets.slint";
+export component Runtime inherits Window {
     in property <image> texture <=> image.source;
-    
-    title: "lyrebird editor";
 
     VerticalBox {
         image := Image {

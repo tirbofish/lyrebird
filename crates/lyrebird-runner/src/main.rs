@@ -3,9 +3,8 @@
 
 #![windows_subsystem = "windows"]
 
-#[tokio::main]
-async fn main() {
-    lyrebird_renderer::run::<lyrebird_runtime::scene::Runtime>().unwrap();
+fn main() {
+    lyrebird_renderer::run::<lyrebird_runtime::Runtime>().unwrap();
 }
 
 #[cfg(target_arch = "wasm32")]

@@ -1,36 +1,20 @@
 use lyrebird_renderer::prelude::{winit::keyboard::KeyCode, *};
-use slint::ComponentHandle;
 
-pub struct Editor {
-
-}
-
-impl AppBehaviour for Editor {
+impl AppBehaviour for crate::LyrebirdEditor {
     fn new() -> Self {
-        Self {
-
-        }
+        Self::new().unwrap()
     }
-    
-    fn init(&mut self, ctx: Context) {
-        ctx.graphics.window.set_title("lyrebird editor");
 
-        let app = crate::App::new().unwrap();
-        let app_weak = app.as_weak();
-        app.window()
-            .set_rendering_notifier(move |state, graphics_api| {
-
-            })
-            .expect("Unable to set rendering notifier");
+    fn init(&mut self, _ctx: Context) {
+        // ctx.graphics.window.set_title("lyrebird editor");
     }
     
     fn update(&mut self, ctx: Context, _dt: f64) {
         if ctx.input.is_key_down(KeyCode::Escape) 
             || ctx.input.gamepads_snapshot().gamepads.iter().find(|(_, state)| state.buttons_down.contains(&gilrs::Button::Start)).is_some()
         {
-            ctx.event_loop.exit();
+            
         }
-
     }
     
     fn render(&mut self, ctx: Context, view: &wgpu::TextureView) {
